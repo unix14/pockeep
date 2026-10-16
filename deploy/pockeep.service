@@ -1,0 +1,28 @@
+# systemd unit for running pockeep without Docker (bare Node.js inside the LXC).
+# Install: copy to /etc/systemd/system/pockeep.service, then
+#   systemctl daemon-reload && systemctl enable --now pockeep
+[Unit]
+Description=PocKeep (WhatsApp notes-to-self dashboard)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pockeep
+Group=pockeep
+WorkingDirectory=/opt/pockeep
+EnvironmentFile=/opt/pockeep/.env
+Environment=NODE_ENV=production
+Environment=DATA_DIR=/var/lib/pockeep
+ExecStart=/usr/bin/node server/src/index.js
+Restart=on-failure
+RestartSec=5
+# hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/pockeep
+
+[Install]
+WantedBy=multi-user.target

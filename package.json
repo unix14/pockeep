@@ -1,0 +1,14 @@
+{
+  "name": "pockeep",
+  "private": true,
+  "type": "module",
+  "description": "pockeep: self-hosted organizer for WhatsApp self-chat exports",
+  "scripts": {
+    "install:all": "npm --prefix server ci && npm --prefix web ci",
+    "dev:server": "npm --prefix server run dev",
+    "dev:web": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "start": "npm --prefix server start",
+    "test": "npm --prefix server test"
+  }
+}

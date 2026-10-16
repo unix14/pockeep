@@ -1,0 +1,44 @@
+# ---- secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- data: database, WAL files, stored WhatsApp exports ----
+data/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite*
+
+# ---- Tailscale sidecar state (contains the node's private key) ----
+tailscale/state/
+
+# ---- dependencies & build output ----
+node_modules/
+web/dist/
+*.tsbuildinfo
+
+# ---- logs & caches ----
+*.log
+npm-debug.log*
+yarn-error.log*
+.npm/
+.cache/
+.vite/
+coverage/
+
+# ---- editor / OS noise ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# ---- local backups & scratch ----
+*.bak
+*.orig
+backups/
