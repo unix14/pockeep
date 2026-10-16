@@ -29,9 +29,16 @@ Ideas and planned work, roughly in priority order. Contributions welcome.
 - [ ] Saved searches as custom smart views.
 - [ ] Expense export (CSV) and simple charts per category.
 
+## Deployment and updates
+
+- [ ] **Auto-deploy on push.** Currently updating a self-hosted instance requires a manual `git pull && docker compose up -d --build`. Ideas for automatic deployment:
+  - [ ] **GitHub webhook → automation** — the repo sends a push webhook to a workflow engine (e.g. n8n, Rundeck), which SSHes into the server and runs the update.
+  - [ ] **GitHub Actions + Tailscale** — add `tailscale/github-action` to the CI pipeline so it can SSH to a private server and deploy automatically.
+  - [ ] **Cron-based polling** — a cron job on the server that runs `git fetch` periodically and rebuilds only when there are new commits. Simplest, no external dependencies.
+- [ ] Prebuilt multi-arch images on GHCR (amd64, arm64) — would simplify updates to a `docker compose pull` instead of building from source.
+
 ## Platform
 
-- [ ] Prebuilt multi-arch images on GHCR (amd64, arm64).
 - [ ] OIDC sign-in (Authelia, Authentik) as an alternative to local passwords.
 - [ ] Two-factor authentication (TOTP).
 - [ ] Encrypted backups and scheduled server-side backup rotation.
