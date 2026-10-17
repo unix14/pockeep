@@ -38,10 +38,10 @@ const Core = (() => {
   };
   const DOC_RE = /^(.+?\.[A-Za-z0-9]{1,5})(?:\s+([\s\S]*))?$/;
 
-  // returns {body, media, docName, forwarded}
+  // returns {body, media, docName, fileName, forwarded}
   function stripMarkers(text) {
     let t = clean(text).replace(/^\s+/, '');
-    let forwarded = false, media = null, docName = null;
+    let forwarded = false, media = null, docName = null, fileName = null;
     for (let guard = 0; guard < 6; guard++) {
       const m = t.match(/^\[([^\]\n]{2,40})\]\s*/);
       if (!m) break;
@@ -61,9 +61,9 @@ const Core = (() => {
     }
     // native WhatsApp attachment markers
     const nat = nativeMedia(t);
-    if (nat) { media = media || nat.media; docName = docName || nat.docName; t = nat.rest; }
+    if (nat) { media = media || nat.media; docName = docName || nat.docName; fileName = fileName || nat.fileName || null; t = nat.rest; }
     t = t.replace(/\s*<This message was edited>\s*$/i, '').replace(/\s*‎?<.{0,20}נערכה.{0,10}>\s*$/, '');
-    return { body: t.replace(/\s+$/, '').replace(/^\s*\n/, ''), media, docName, forwarded };
+    return { body: t.replace(/\s+$/, '').replace(/^\s*\n/, ''), media, docName, fileName, forwarded };
   }
 
   const IMG_EXT = /\.(jpe?g|png|gif|webp|heic|mp4|mov|3gp|opus|ogg|m4a|mp3|aac|webm|vcf|wav)$/i;
@@ -75,13 +75,20 @@ const Core = (() => {
       || /^(התמונה|הסרטון|האודיו|המדבקה) הושמט/.test(first)) {
       return { media: 'image', docName: null, rest: lines.slice(1).join('\n') };
     }
-    if ((m = first.match(/^<attached:\s*(?:\d+-)?(.+?)>$/i)) || (m = first.match(/^(.+?)\s+\((?:file attached|קובץ מצורף)\)$/i))) {
-      const name = m[1].trim();
+    // `full` is the entry as it is named inside the .zip; `name` drops the numeric
+    // prefix WhatsApp adds in <attached:> lines and is what docName has always
+    // used, so card fingerprints keep matching.
+    let full = null, name = null;
+    if ((m = first.match(/^<attached:\s*((?:\d+-)?(.+?))>$/i))) { full = m[1].trim(); name = m[2].trim(); }
+    else if ((m = first.match(/^(.+?)\s+\((?:file attached|קובץ מצורף)\)$/i))) { full = name = m[1].trim(); }
+    if (full) {
       const isDoc = !IMG_EXT.test(name) && !/^(IMG|VID|PTT|AUD|STK)-/i.test(name) && !/-(PHOTO|VIDEO|AUDIO|STICKER|GIF)-/i.test(name);
-      return { media: isDoc ? 'document' : 'image', docName: isDoc ? name : null, rest: lines.slice(1).join('\n') };
+      // fileName is kept for every media kind so an uncaptioned photo or voice
+      // note still becomes a card; docName stays document-only.
+      return { media: isDoc ? 'document' : 'image', docName: isDoc ? name : null, fileName: full, rest: lines.slice(1).join('\n') };
     }
     if ((m = first.match(/^(.+?\.[A-Za-z0-9]{1,5})\s+•.*document omitted$/i)) || (m = first.match(/^(.+?\.[A-Za-z0-9]{1,5}) document omitted$/i))) {
-      return { media: 'document', docName: m[1].trim(), rest: lines.slice(1).join('\n') };
+      return { media: 'document', docName: m[1].trim(), fileName: m[1].trim(), rest: lines.slice(1).join('\n') };
     }
     if (/^(this message was deleted|you deleted this message|null|הודעה זו נמחקה|מחקת הודעה זו)$/i.test(first) && lines.length === 1) {
       return { media: 'unknown', docName: null, rest: '' };
@@ -173,15 +180,21 @@ const Core = (() => {
       stats.messages++;
       if (m.system) { stats.system++; continue; }
       const s = stripMarkers(m.raw);
-      if (!s.body.trim() && !s.docName) { stats.bareMedia++; continue; }
-      const key = normKey(s.body) + (s.docName ? ' |doc:' + normKey(s.docName) : '');
+      // A media message with a real file behind it (".zip" export) becomes a card
+      // even without a caption, so the file has something to attach to. Bare
+      // "<Media omitted>" markers carry no file and are still dropped.
+      if (!s.body.trim() && !s.docName && !s.fileName) { stats.bareMedia++; continue; }
+      let key = normKey(s.body) + (s.docName ? ' |doc:' + normKey(s.docName) : '');
+      // Only ever empty for the uncaptioned media kept above, so fingerprints of
+      // cards that already existed are untouched.
+      if (!key) key = ' |file:' + normKey(s.fileName);
       const ok = m.date + '\n' + key;
       const k = occ.get(ok) || 0; occ.set(ok, k + 1);
       const seq = (daySeq.get(m.date) || 0); daySeq.set(m.date, seq + 1);
       items.push({
         id: 'i' + hash(m.date + '\n' + key + '\n#' + k), key,
         date: m.date, time: m.time, seq, occ: k, sender: m.sender || null,
-        raw: clean(m.raw).replace(/\s+$/, ''), body: s.body, media: s.media, docName: s.docName, forwarded: s.forwarded
+        raw: clean(m.raw).replace(/\s+$/, ''), body: s.body, media: s.media, docName: s.docName, fileName: s.fileName, forwarded: s.forwarded
       });
       stats.kept++;
     }
