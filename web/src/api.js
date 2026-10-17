@@ -51,6 +51,7 @@ export const api = {
   addRule: rule => request('POST', '/api/rules', { json: rule }),
   updateRule: (id, rule) => request('PATCH', `/api/rules/${id}`, { json: rule }),
   deleteRule: id => request('DELETE', `/api/rules/${id}`),
+  applyRules: (dryRun = false) => request('POST', '/api/rules/apply', { json: { dryRun } }),
   putLabels: labels => request('PUT', '/api/labels', { json: { labels } }),
   renameLabel: (from, to) => request('POST', '/api/labels/rename', { json: { from, to } }),
   deleteLabel: name => request('POST', '/api/labels/delete', { json: { name } }),

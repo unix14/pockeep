@@ -271,6 +271,38 @@ export function forUser(db, userId) {
     },
     deleteRule(id) { if (!s.deleteRule.run(userId, id).changes) throw notFound('הכלל לא נמצא'); },
 
+    /* Re-run the rules over cards that are already on the board. Only cards the
+       user has not filed themselves are eligible: still unsorted, or still
+       carrying the automatic tag. `dryRun` reports what would change and writes
+       nothing, which is what the confirmation dialog asks for first. */
+    applyRules({ dryRun = false } = {}) {
+      const rules = repo.rules();
+      const counts = { eligible: 0, changed: 0, skipped: { manual: 0, locked: 0 } };
+      const ops = [];
+
+      for (const it of repo.items()) {
+        if (it.status !== 'active') continue;
+        if (it.locked) { counts.skipped.locked++; continue; }
+        // filed by hand: has a category and is no longer marked automatic
+        if (it.category !== 'inbox' && !it.flags?.auto) { counts.skipped.manual++; continue; }
+        counts.eligible++;
+
+        const c = Core.classify(it, rules);
+        const labels = [...new Set([...it.labels, ...(c.labels || [])])];
+        const sameLabels = labels.length === it.labels.length && labels.every(l => it.labels.includes(l));
+        if (c.category === it.category && sameLabels) continue;
+
+        counts.changed++;
+        ops.push({ id: it.id, patch: { category: c.category, labels } });
+      }
+
+      // touch: false keeps a bulk re-sort from rewriting every card's updatedAt
+      if (!dryRun && ops.length) {
+        db.transaction(() => { for (const op of ops) repo.patchItem(op.id, op.patch, { touch: false }); })();
+      }
+      return counts;
+    },
+
     rememberLabels(labels) {
       const cur = repo.settings().labels;
       const add = labels.filter(l => !cur.includes(l));

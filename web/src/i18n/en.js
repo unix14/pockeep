@@ -337,15 +337,29 @@ export default {
   'קישור מהדומיין': 'Link from domain',
   'הטקסט מתחיל ב־': 'Text starts with',
   'ביטוי רגולרי': 'Regular expression',
-  'כללים מופעלים רק על הודעות חדשות בייבוא הבא, לפני המיון האוטומטי. הכלל הראשון שמתאים קובע את הקטגוריה; תוויות מכל הכללים המתאימים מצטרפות.':
-    'Rules apply only to new messages in the next import, before automatic sorting. The first matching rule sets the category; labels from every matching rule are added.',
+  'כללים מופעלים על הודעות חדשות בייבוא הבא, לפני המיון האוטומטי. הכלל הראשון שמתאים קובע את הקטגוריה; תוויות מכל הכללים המתאימים מצטרפות.':
+    'Rules apply to new messages in the next import, before automatic sorting. The first matching rule sets the category; labels from every matching rule are added.',
   'כלל חדש': 'New rule',
   'למשל: aliexpress': 'e.g. aliexpress',
   'קטגוריית יעד': 'Target category',
   'בלי שינוי קטגוריה': "Don't change category",
   'תוויות, מופרדות בפסיק': 'Labels, comma separated',
   'הוספה': 'Add',
-  'מתאים ל־{n} כרטיסים קיימים (הכלל לא ישנה אותם).': "Matches {n} existing cards (the rule won't change them).",
+  'מתאים ל־{n} כרטיסים קיימים.': 'Matches {n} existing cards.',
+  'הפעלה על כרטיסים קיימים': 'Apply to existing cards',
+  'מריץ את הכללים על הכרטיסים שכבר בלוח. משנה רק כרטיסים שעדיין „לא ממוינים” או שמיון אוטומטי שם אותם — כרטיסים שמיינת בעצמך, נעולים או בארכיון לא ישתנו. תוצג תצוגה מקדימה לפני השינוי.':
+    'Runs the rules over cards already on the board. Only cards still in \u201cUnsorted\u201d, or placed there by automatic sorting, can change \u2014 cards you filed yourself, locked ones and archived ones are left alone. You see a preview before anything changes.',
+  'הפעלת הכללים על כרטיסים קיימים': 'Apply rules to existing cards',
+  'להפעיל את הכללים על הכרטיסים הקיימים?': 'Apply the rules to existing cards?',
+  '{changed} מתוך {eligible} כרטיסים ישנו קטגוריה או תוויות. {manual} כרטיסים שמיינת בעצמך ו־{locked} נעולים לא ישתנו.':
+    '{changed} of {eligible} cards will change category or labels. {manual} cards you filed yourself and {locked} locked ones will not change.',
+  'הפעלה': 'Apply',
+  'אף כרטיס קיים לא מושפע מהכללים הנוכחיים': 'No existing card is affected by the current rules',
+  // install prompt (PWA)
+  'התקנה כאפליקציה': 'Install as an app',
+  'אפשר להוסיף את פוקיפ למסך הבית ולהשתמש בו כמו אפליקציה רגילה.': 'You can add PocKeep to your home screen and use it like a regular app.',
+  'התקנה על המכשיר': 'Install on this device',
+  'האפליקציה הותקנה!': 'The app is installed!',
   'עוד אין כללים.': 'No rules yet.',
   'תנאי': 'Condition',
   'יעד': 'Target',

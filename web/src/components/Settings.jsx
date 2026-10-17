@@ -15,8 +15,11 @@ const COLOR_HE = { slate: 'אפור', teal: 'טורקיז', green: 'ירוק', a
 /* ---------- Rules ---------- */
 function RulesTab() {
   const { rules, categories, items, actions } = useStore();
+  const confirm = useConfirm();
+  const toast = useToast();
   const empty = { match: 'contains', pattern: '', category: 'inbox', labels: '' };
   const [form, setForm] = useState(empty);
+  const [applying, setApplying] = useState(false);
   const active = useMemo(() => Object.values(items).filter(i => i.status !== 'purged'), [items]);
   const test = r => { if (!r.pattern.trim()) return null; return active.filter(it => Core.ruleMatches({ ...r, enabled: true }, it)).length; };
   const matches = test(form);
@@ -26,9 +29,28 @@ function RulesTab() {
     if (rule) setForm(empty);
   };
   const catName = id => t(categories.find(c => c.id === id)?.name || '—');
+
+  /* Ask the server what would change, show the numbers, and only then apply.
+     Cards the user filed themselves, and locked cards, are never touched. */
+  const applyToExisting = async () => {
+    setApplying(true);
+    try {
+      const dry = await actions.applyRules(true);
+      if (!dry) return;
+      if (!dry.changed) { toast(t('אף כרטיס קיים לא מושפע מהכללים הנוכחיים')); return; }
+      const ok = await confirm({
+        title: t('להפעיל את הכללים על הכרטיסים הקיימים?'),
+        body: t('{changed} מתוך {eligible} כרטיסים ישנו קטגוריה או תוויות. {manual} כרטיסים שמיינת בעצמך ו־{locked} נעולים לא ישתנו.',
+          { changed: num(dry.changed), eligible: num(dry.eligible), manual: num(dry.skipped.manual), locked: num(dry.skipped.locked) }),
+        confirm: t('הפעלה')
+      });
+      if (ok) await actions.applyRules(false);
+    } finally { setApplying(false); }
+  };
+
   return (
     <div className="dlg-body">
-      <p className="hint">{t('כללים מופעלים רק על הודעות חדשות בייבוא הבא, לפני המיון האוטומטי. הכלל הראשון שמתאים קובע את הקטגוריה; תוויות מכל הכללים המתאימים מצטרפות.')}</p>
+      <p className="hint">{t('כללים מופעלים על הודעות חדשות בייבוא הבא, לפני המיון האוטומטי. הכלל הראשון שמתאים קובע את הקטגוריה; תוויות מכל הכללים המתאימים מצטרפות.')}</p>
       <form className="box" onSubmit={add}>
         <h3>{t('כלל חדש')}</h3>
         <div className="rulerow">
@@ -43,8 +65,17 @@ function RulesTab() {
           <input id="rule-labels" className="inp" dir="auto" placeholder={t('תוויות, מופרדות בפסיק')} value={form.labels} onChange={e => setForm({ ...form, labels: e.target.value })} />
           <button className="btn primary" disabled={!form.pattern.trim()}>{t('הוספה')}</button>
         </div>
-        {matches !== null && <p className="hint">{t('מתאים ל־{n} כרטיסים קיימים (הכלל לא ישנה אותם).', { n: num(matches) })}</p>}
+        {matches !== null && <p className="hint">{t('מתאים ל־{n} כרטיסים קיימים.', { n: num(matches) })}</p>}
       </form>
+      {rules.length > 0 && (
+        <div className="box">
+          <h3>{t('הפעלה על כרטיסים קיימים')}</h3>
+          <p className="hint">{t('מריץ את הכללים על הכרטיסים שכבר בלוח. משנה רק כרטיסים שעדיין „לא ממוינים” או שמיון אוטומטי שם אותם — כרטיסים שמיינת בעצמך, נעולים או בארכיון לא ישתנו. תוצג תצוגה מקדימה לפני השינוי.')}</p>
+          <button className="btn" onClick={applyToExisting} disabled={applying}>
+            {applying ? <Spinner /> : null}{t('הפעלת הכללים על כרטיסים קיימים')}
+          </button>
+        </div>
+      )}
       {rules.length === 0 ? <p className="hint">{t('עוד אין כללים.')}</p> : (
         <div className="scrollx"><table className="tbl">
           <thead><tr><th>{t('תנאי')}</th><th>{t('יעד')}</th><th>{t('תוויות')}</th><th className="n">{t('התאמות')}</th><th>{t('פעיל')}</th><th /></tr></thead>

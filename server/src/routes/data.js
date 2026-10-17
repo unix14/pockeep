@@ -44,6 +44,12 @@ export default async function dataRoutes(app) {
   app.post('/rules', async req => ({ rule: repoOf(req).addRule(req.body || {}) }));
   app.patch('/rules/:id', async req => ({ rule: repoOf(req).updateRule(Number(req.params.id), req.body || {}) }));
   app.delete('/rules/:id', async req => { repoOf(req).deleteRule(Number(req.params.id)); return { ok: true }; });
+  // re-run the rules over existing cards; { dryRun: true } only reports
+  app.post('/rules/apply', async req => {
+    const r = repoOf(req);
+    const result = r.applyRules({ dryRun: req.body?.dryRun === true });
+    return req.body?.dryRun === true ? result : { ...result, items: r.items() };
+  });
 
   app.put('/labels', async req => {
     if (!Array.isArray(req.body?.labels)) throw badRequest('תוויות חייבות להיות רשימה');

@@ -160,6 +160,14 @@ export function StoreProvider({ user, onPasswordChangeRequired, onLang, children
         try { await track(() => api.deleteRule(id)); dispatch({ type: 'set', patch: { rules: ref.current.rules.filter(x => x.id !== id) } }); toast('הכלל נמחק'); }
         catch (e) { fail(e); }
       },
+      // dryRun only reports; without it the server returns the updated board
+      async applyRules(dryRun = false) {
+        try {
+          const r = await track(() => api.applyRules(dryRun));
+          if (!dryRun && r.items) dispatch({ type: 'replaceItems', items: r.items });
+          return r;
+        } catch (e) { fail(e); return null; }
+      },
       async addKnownLabel(name) {
         const labels = [...new Set([...ref.current.settings.labels, name])];
         try { const r = await track(() => api.putLabels(labels)); dispatch({ type: 'set', patch: { settings: { ...ref.current.settings, labels: r.labels } } }); }
