@@ -84,10 +84,16 @@ On the first start, while the database is empty, PocKeep creates:
    mkdir -p data && chown 1000:1000 data
    docker compose up -d --build
    ```
-4. **Update later:**
+4. **Update later:** run the update script, which pulls `main` and rebuilds only
+   when there are new commits:
    ```bash
-   cd /opt/pockeep && git pull && docker compose up -d --build
+   /opt/pockeep/scripts/update.sh
    ```
+   From a Proxmox host you can run it without opening a shell in the container:
+   ```bash
+   pct exec <CTID> -- /opt/pockeep/scripts/update.sh
+   ```
+   The equivalent by hand is `cd /opt/pockeep && git pull && docker compose up -d --build`.
 
 ### Private access with Tailscale
 
