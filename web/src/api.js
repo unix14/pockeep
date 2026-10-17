@@ -9,11 +9,12 @@ export class ApiError extends Error {
 const listeners = new Set();
 export const onUnauthorized = fn => { listeners.add(fn); return () => listeners.delete(fn); };
 
-async function request(method, url, { json, text, headers = {}, allow401 = false } = {}) {
+async function request(method, url, { json, text, binary, headers = {}, allow401 = false } = {}) {
   const h = { 'x-requested-with': 'pockeep', 'x-pockeep-lang': getLang(), ...headers };
   let body;
   if (json !== undefined) { h['content-type'] = 'application/json'; body = JSON.stringify(json); }
-  if (text !== undefined) { h['content-type'] = 'text/plain; charset=utf-8'; body = text; }
+  else if (text !== undefined) { h['content-type'] = 'text/plain; charset=utf-8'; body = text; }
+  else if (binary !== undefined) { h['content-type'] = 'application/zip'; body = binary; }
   let res;
   try {
     res = await fetch(url, { method, headers: h, body, credentials: 'same-origin' });
@@ -41,6 +42,7 @@ export const api = {
 
   // data
   state: () => request('GET', '/api/state'),
+  createItem: data => request('POST', '/api/items', { json: data }),
   patchItem: (id, patch) => request('PATCH', `/api/items/${enc(id)}`, { json: { patch } }),
   batch: ops => request('POST', '/api/items/batch', { json: { ops } }),
   resolve: (id, action) => request('POST', `/api/items/${enc(id)}/resolve`, { json: { action } }),
@@ -55,7 +57,12 @@ export const api = {
   setPrefs: prefs => request('PATCH', '/api/settings', { json: { prefs } }),
 
   // imports & backup
-  previewImport: (text, fileName) => request('POST', '/api/imports/preview', { text, headers: { 'x-file-name': encodeFileName(fileName) } }),
+  previewImport: (textOrBlob, fileName) => {
+    if (textOrBlob instanceof Blob) {
+      return request('POST', '/api/imports/preview', { binary: textOrBlob, headers: { 'x-file-name': encodeFileName(fileName) } });
+    }
+    return request('POST', '/api/imports/preview', { text: textOrBlob, headers: { 'x-file-name': encodeFileName(fileName) } });
+  },
   commitImport: token => request('POST', `/api/imports/${enc(token)}/commit`, { json: {} }),
   imports: () => request('GET', '/api/imports'),
   backupUrl: '/api/backup',

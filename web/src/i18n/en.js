@@ -87,6 +87,12 @@ export default {
   'מומש': 'Used', 'פג תוקף': 'Expired', 'פג היום': 'Expires today', 'פג מחר': 'Expires tomorrow',
   'פג בעוד {n} ימים': 'Expires in {n} days', 'בתוקף': 'Active',
 
+  // compose
+  'כרטיס חדש': 'New card',
+  'טקסט…': 'Text…',
+  'יצירה': 'Create',
+  'הכרטיס נוצר': 'Card created',
+
   // cards
   'אוטומטי': 'Auto',
   'מוין אוטומטית. לחיצה מסמנת שנבדק.': 'Sorted automatically. Click to mark as reviewed.',
@@ -296,6 +302,7 @@ export default {
   'ייבוא ייצוא צ׳אט': 'Import a chat export',
   'גוררים לכאן את קובץ הייצוא, או בוחרים אותו מהמחשב': 'Drop the export file here, or choose it from your computer',
   'ייצוא רגיל של וואטסאפ (‎.txt‎, מאנדרואיד או מאייפון) או קובץ ‎.md‎ מומר. תמונות וקבצים לא נדרשים.': 'A regular WhatsApp export (.txt, from Android or iPhone) or a converted .md file. Photos and files are not needed.',
+  'ייצוא של וואטסאפ: קובץ ‎.zip‎ (עם מדיה), ‎.txt‎ (אנדרואיד/אייפון) או ‎.md‎ מומר.': 'WhatsApp export: .zip (with media), .txt (Android/iPhone) or converted .md.',
   'בחירת קובץ': 'Choose file',
   'שום דבר לא נשמר לפני שמאשרים. הודעות שכבר קיימות אצלך מזוהות ומדולגות, והסידור שלך לא משתנה.': "Nothing is saved until you confirm. Messages you already have are recognized and skipped, and your organization doesn't change.",
   'קוראים את הקובץ ובודקים מה חדש…': "Reading the file and checking what's new…",
@@ -316,6 +323,9 @@ export default {
   'ייבוא {n} כרטיסים חדשים': 'Import {n} new cards',
   'עדכון העריכות': 'Apply the edits',
   'אין מה לייבא': 'Nothing to import',
+  'קבצים מצורפים יקושרו': 'Attachments will be linked',
+  '{n} קבצים מצורפים': '{n} attachments',
+  'קבצים': 'files',
 
   // settings
   'הגדרות': 'Settings',

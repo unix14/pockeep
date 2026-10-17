@@ -115,6 +115,18 @@ const MIGRATIONS = [
   `,
   `
   ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0;
+  `,
+  `
+  CREATE TABLE item_attachments (
+    user_id     INTEGER NOT NULL,
+    item_id     TEXT NOT NULL,
+    file_name   TEXT NOT NULL,
+    mime_type   TEXT,
+    size        INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (user_id, item_id, file_name),
+    FOREIGN KEY (user_id, item_id) REFERENCES items(user_id, id) ON DELETE CASCADE
+  ) WITHOUT ROWID;
   `
 ];
 

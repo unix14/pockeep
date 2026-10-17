@@ -1,3 +1,5 @@
+import { createReadStream, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { forUser } from '../repo.js';
 import { badRequest, notFound } from '../errors.js';
 
@@ -25,6 +27,8 @@ export default async function dataRoutes(app) {
     if (!it) throw notFound('הכרטיס לא נמצא');
     return { item: it };
   });
+
+  app.post('/items', async req => ({ item: repoOf(req).createItem(req.body || {}) }));
 
   app.patch('/items/:id', async req => ({ item: repoOf(req).patchItem(req.params.id, req.body?.patch ?? req.body) }));
 
@@ -59,4 +63,29 @@ export default async function dataRoutes(app) {
   });
 
   app.patch('/settings', async req => ({ prefs: repoOf(req).setPrefs(req.body?.prefs) }));
+
+  // Serve attachment files
+  app.get('/attachments/:itemId/:fileName', async (req, reply) => {
+    const { itemId, fileName } = req.params;
+    const safeName = decodeURIComponent(fileName).replace(/[^\p{L}\p{N} ._()-]/gu, '_').slice(0, 200);
+    const filePath = join(app.config.attachmentsDir, String(req.user.id), itemId, safeName);
+    if (!filePath.startsWith(app.config.attachmentsDir) || !existsSync(filePath)) throw notFound('הקובץ לא נמצא');
+
+    const ext = safeName.split('.').pop()?.toLowerCase() || '';
+    const contentType = {
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+      webp: 'image/webp', heic: 'image/heic', svg: 'image/svg+xml', bmp: 'image/bmp',
+      mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', '3gp': 'video/3gpp',
+      pdf: 'application/pdf',
+      doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      opus: 'audio/opus', ogg: 'audio/ogg', m4a: 'audio/mp4', mp3: 'audio/mpeg', aac: 'audio/aac', wav: 'audio/wav',
+      vcf: 'text/vcard',
+    }[ext] || 'application/octet-stream';
+
+    reply.header('Content-Type', contentType);
+    reply.header('Content-Disposition', `inline; filename="${encodeURIComponent(safeName)}"`);
+    reply.header('Cache-Control', 'private, max-age=86400');
+    return reply.send(createReadStream(filePath));
+  });
 }

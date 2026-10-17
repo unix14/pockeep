@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import Core from '../../shared/core.js';
 import { nowIso } from './db.js';
 import { rowToItem, itemToRow, validatePatch, applyPatch, cleanLabels } from './items.js';
@@ -63,6 +64,11 @@ function statements(db) {
     insertImport: db.prepare(`INSERT INTO imports (user_id, id, at, file_name, export_date, format, counts, stored_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
     upsertImport: db.prepare(`INSERT OR REPLACE INTO imports (user_id, id, at, file_name, export_date, format, counts, stored_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
 
+    attachmentsForUser: db.prepare(`SELECT item_id, file_name, mime_type, size FROM item_attachments WHERE user_id = ?`),
+    attachmentsForItem: db.prepare(`SELECT file_name, mime_type, size FROM item_attachments WHERE user_id = ? AND item_id = ?`),
+    insertAttachment: db.prepare(`INSERT OR REPLACE INTO item_attachments (user_id, item_id, file_name, mime_type, size, created_at) VALUES (?, ?, ?, ?, ?, ?)`),
+    deleteAttachmentsForItem: db.prepare(`DELETE FROM item_attachments WHERE user_id = ? AND item_id = ?`),
+
     wipeItems: db.prepare(`DELETE FROM items WHERE user_id = ?`),
     wipeAliases: db.prepare(`DELETE FROM item_aliases WHERE user_id = ?`),
     wipeRules: db.prepare(`DELETE FROM rules WHERE user_id = ?`),
@@ -95,8 +101,27 @@ export function forUser(db, userId) {
     userId,
 
     // ---------- reads ----------
-    items: () => s.items.all(userId).map(rowToItem),
-    item(id) { const r = s.item.get(userId, id); return r && r.status !== 'purged' ? rowToItem(r) : null; },
+    items: () => {
+      const rows = s.items.all(userId).map(rowToItem);
+      const atts = s.attachmentsForUser.all(userId);
+      if (atts.length) {
+        const byItem = new Map();
+        for (const a of atts) {
+          if (!byItem.has(a.item_id)) byItem.set(a.item_id, []);
+          byItem.get(a.item_id).push({ name: a.file_name, type: a.mime_type, size: a.size });
+        }
+        for (const it of rows) if (byItem.has(it.id)) it.attachments = byItem.get(it.id);
+      }
+      return rows;
+    },
+    item(id) {
+      const r = s.item.get(userId, id);
+      if (!r || r.status === 'purged') return null;
+      const it = rowToItem(r);
+      const atts = s.attachmentsForItem.all(userId, id);
+      if (atts.length) it.attachments = atts.map(a => ({ name: a.file_name, type: a.mime_type, size: a.size }));
+      return it;
+    },
     categories: () => s.categories.all(userId),
     categoryIds: () => new Set(s.categories.all(userId).map(c => c.id)),
     rules: () => s.rules.all(userId).map(ruleOut),
@@ -112,6 +137,34 @@ export function forUser(db, userId) {
       for (const r of s.reconcileRows.all(userId)) m.set(r.id, { ...r, aliases: [] });
       for (const a of s.aliases.all(userId)) m.get(a.item_id)?.aliases.push(a.alias);
       return m;
+    },
+
+    // ---------- create card ----------
+    createItem({ body, category, type, title, note, labels, fields } = {}) {
+      if (!body && !title) throw badRequest('הבקשה לא תקינה');
+      const id = 'i' + randomBytes(8).toString('base64url');
+      const at = now();
+      const d = new Date();
+      const date = d.toISOString().slice(0, 10);
+      const time = d.toTimeString().slice(0, 5);
+      const catIds = repo.categoryIds();
+      const it = {
+        id, date, time, seq: 0, sender: null,
+        raw: body || '', body: body || '', waText: null, media: null, docName: null, forwarded: false,
+        title: typeof title === 'string' ? title.slice(0, 500) : '',
+        text: null, note: typeof note === 'string' ? note.slice(0, 10000) : '',
+        category: catIds.has(category) ? category : 'inbox',
+        type: ['note', 'todo', 'expense', 'voucher', 'event', 'link'].includes(type) ? type : 'note',
+        labels: cleanLabels(labels || []),
+        fields: fields && typeof fields === 'object' ? fields : {},
+        flags: {}, pinned: false, locked: false, color: null,
+        done: false, watched: false, used: false, status: 'active',
+        possibleEditOf: null, dupOf: null, importId: null,
+        createdAt: at, updatedAt: at, trashedAt: null
+      };
+      s.insertItem.run(itemToRow(it, userId));
+      if (it.labels.length) repo.rememberLabels(it.labels);
+      return it;
     },
 
     // ---------- card edits ----------
@@ -264,21 +317,30 @@ export function forUser(db, userId) {
       return next;
     },
 
+    // ---------- attachments ----------
+    addAttachments(itemId, files) {
+      const at = now();
+      for (const f of files) s.insertAttachment.run(userId, itemId, f.name, f.type || null, f.size || 0, at);
+    },
+
     // ---------- imports ----------
     // parsed = result of Core.parseExport. Re-runs reconciliation inside the write transaction.
-    commitImport(parsed, meta) {
+    // attachmentMap: Map itemId -> [{name, type, size}] (optional, from zip imports)
+    commitImport(parsed, meta, attachmentMap) {
       return db.transaction(() => {
         const plan = Core.reconcile(parsed.items, repo.reconcileMap(), repo.rules());
         const importId = 'imp_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         const at = now();
         for (const rec of plan.newItems) {
           s.insertItem.run(itemToRow({ ...rec, importId, createdAt: at, updatedAt: at }, userId));
+          if (attachmentMap?.has(rec.id)) repo.addAttachments(rec.id, attachmentMap.get(rec.id));
         }
         for (const e of plan.edits) {
           const cur = rowToItem(s.item.get(userId, e.existingId));
           const next = { ...cur, waText: e.parsed.body, flags: { ...cur.flags, editedWA: true }, updatedAt: at };
           s.updateItem.run(itemToRow(next, userId));
           s.addAlias.run(userId, e.parsed.id, cur.id);
+          if (attachmentMap?.has(e.parsed.id)) repo.addAttachments(cur.id, attachmentMap.get(e.parsed.id));
         }
         const counts = summarize(parsed, plan);
         s.insertImport.run(userId, importId, at, meta.fileName || null, parsed.exportDate || null, parsed.format, JSON.stringify(counts), meta.storedFile || null);

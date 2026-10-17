@@ -291,6 +291,10 @@ body.selecting .card:not(.sel) .c-check { background: var(--surface); color: var
 .tick.on { background: var(--good); border-color: var(--good); color: #fff; }
 .c-todo .c-text { margin: 0; flex: 1; min-width: 0; }
 .card.done .c-todo .c-text { text-decoration: line-through; color: var(--fg-3); }
+.c-attachments { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.c-att { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 7px; background: var(--surface-2); font-size: 12px; text-decoration: none; color: var(--fg-2); max-width: 100%; border: 1px solid var(--border); }
+.c-att:hover { background: var(--surface-3); color: var(--fg); }
+.c-att .att-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
 .c-labels { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
 .lab { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 11.5px; background: rgba(127,127,127,.14); color: var(--fg-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-flags { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0; align-items: center; }

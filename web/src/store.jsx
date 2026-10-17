@@ -115,6 +115,14 @@ export function StoreProvider({ user, onPasswordChangeRequired, onLang, children
       reload: load,
       patch,
       patchOne: (id, p, opts) => patch([{ id, patch: p }], opts),
+      async createItem(data) {
+        try {
+          const r = await track(() => api.createItem(data));
+          dispatch({ type: 'upsert', items: [r.item] });
+          toast(t('הכרטיס נוצר'));
+          return r.item;
+        } catch (e) { fail(e); return null; }
+      },
       async resolve(id, action) {
         try {
           const r = await track(() => api.resolve(id, action));

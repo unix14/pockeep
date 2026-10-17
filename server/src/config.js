@@ -17,6 +17,7 @@ export function loadConfig(overrides = {}) {
     dataDir,
     dbFile: overrides.dbFile ?? env.DB_FILE ?? join(dataDir, 'pockeep.db'),
     exportsDir: overrides.exportsDir ?? env.EXPORTS_DIR ?? join(dataDir, 'exports'),
+    attachmentsDir: overrides.attachmentsDir ?? env.ATTACHMENTS_DIR ?? join(dataDir, 'attachments'),
     // keep a copy of every uploaded export file next to the database
     storeExports: bool(env.STORE_EXPORTS, true),
     allowRegistration: bool(env.ALLOW_REGISTRATION, false),

@@ -6,6 +6,7 @@ import Sidebar from './Sidebar.jsx';
 import Editor from './Editor.jsx';
 import ImportDialog from './ImportDialog.jsx';
 import Settings from './Settings.jsx';
+import ComposeDialog from './ComposeDialog.jsx';
 import { MoveMenu, LabelMenu, ColorMenu } from './CardMenus.jsx';
 import { ExpenseSummary, VoucherSummary, EventSummary, expenseMonths } from './Summaries.jsx';
 import { Popover, MenuItem, useConfirm, Spinner } from './ui.jsx';
@@ -17,6 +18,28 @@ import { t } from '../i18n/index.js';
 const PAGE = 120;
 const isMobile = () => window.matchMedia('(max-width: 860px)').matches;
 
+function viewToPath(v) {
+  switch (v.kind) {
+    case 'all': return '/';
+    case 'cat': return '/' + encodeURIComponent(v.id);
+    case 'archive': return '/archive';
+    case 'trash': return '/trash';
+    case 'smart': return '/smart/' + encodeURIComponent(v.id);
+    case 'label': return '/label/' + encodeURIComponent(v.id);
+    default: return '/';
+  }
+}
+
+function pathToView(path) {
+  const p = decodeURIComponent(path || '/').replace(/\/+$/, '') || '/';
+  if (p === '/') return { kind: 'all' };
+  if (p === '/archive') return { kind: 'archive' };
+  if (p === '/trash') return { kind: 'trash' };
+  if (p.startsWith('/smart/')) return { kind: 'smart', id: p.slice(7) };
+  if (p.startsWith('/label/')) return { kind: 'label', id: p.slice(7) };
+  return { kind: 'cat', id: p.slice(1) };
+}
+
 export default function Shell({ onLogout }) {
   const store = useStore();
   const { items, categories, settings, loaded, error, user, actions, pending } = store;
@@ -24,7 +47,7 @@ export default function Shell({ onLogout }) {
   const td = todayFn();
   const ctx = useMemo(() => ({ today: td, lastImportId: settings.lastImportId }), [td, settings.lastImportId]);
 
-  const [view, setViewRaw] = useState({ kind: 'all' });
+  const [view, setViewRaw] = useState(() => pathToView(window.location.pathname));
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [types, setTypes] = useState(new Set());
@@ -47,7 +70,21 @@ export default function Shell({ onLogout }) {
   const searchRef = useRef(null);
   const lastClicked = useRef(null);
 
-  const setView = useCallback(v => { setViewRaw(v); setSelected(new Set()); setLimit(PAGE); setDrawer(false); setShowDone(false); window.scrollTo({ top: 0 }); }, []);
+  const setView = useCallback((v, { replace } = {}) => {
+    setViewRaw(v); setSelected(new Set()); setLimit(PAGE); setDrawer(false); setShowDone(false); window.scrollTo({ top: 0 });
+    const path = viewToPath(v);
+    if (path !== window.location.pathname) history[replace ? 'replaceState' : 'pushState'](null, '', path);
+  }, []);
+  useEffect(() => {
+    const onPop = () => setViewRaw(pathToView(window.location.pathname));
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  useEffect(() => {
+    if (!loaded || !categories.length) return;
+    if (view.kind === 'cat' && !categories.some(c => c.id === view.id)) setView({ kind: 'all' }, { replace: true });
+  }, [loaded, categories, view, setView]);
+
   const filters = { search, types, statuses, from, to };
   const filterCount = types.size + statuses.size + (from ? 1 : 0) + (to ? 1 : 0);
 
@@ -183,7 +220,9 @@ export default function Shell({ onLogout }) {
             <Icon name="filter" />{filterCount > 0 && <span className="dotbadge" />}
           </button>
           <button className="iconbtn" aria-pressed={selectMode} onClick={() => { setSelectMode(v => !v); setSelected(new Set()); }} title={t('בחירה מרובה')} aria-label={t('בחירה מרובה')}><Icon name="select" /></button>
-          <button className="btn primary hide-mobile" onClick={() => setDialog({ kind: 'import' })}><Icon name="upload" size="sm" />{t('ייבוא')}</button>
+          <button className="btn primary hide-mobile" onClick={() => setDialog({ kind: 'compose' })}><Icon name="plus" size="sm" />{t('חדש')}</button>
+          <button className="iconbtn only-mobile" onClick={() => setDialog({ kind: 'compose' })} aria-label={t('כרטיס חדש')}><Icon name="plus" /></button>
+          <button className="btn hide-mobile" onClick={() => setDialog({ kind: 'import' })}><Icon name="upload" size="sm" />{t('ייבוא')}</button>
           <button className="iconbtn only-mobile" onClick={() => setDialog({ kind: 'import' })} aria-label={t('ייבוא')}><Icon name="upload" /></button>
           <button className="iconbtn" onClick={e => setMenu({ kind: 'user', anchor: e.currentTarget })} aria-label={t('חשבון והגדרות')} title={t('חשבון והגדרות')}><Icon name="settings" /></button>
         </div>
@@ -341,6 +380,7 @@ export default function Shell({ onLogout }) {
       </>)}
 
       {editorItem && <Editor key={editorItem.id} item={editorItem} onClose={() => setEditorId(null)} />}
+      {dialog?.kind === 'compose' && <ComposeDialog defaultCategory={view.kind === 'cat' ? view.id : undefined} onClose={() => setDialog(null)} onCreated={item => { setDialog(null); setEditorId(item.id); }} />}
       {dialog?.kind === 'import' && <ImportDialog onClose={() => setDialog(null)} onImported={() => { setDialog(null); setView({ kind: 'smart', id: 'new' }); }} />}
       {dialog?.kind === 'settings' && <Settings tab={dialog.tab} onClose={() => setDialog(null)} onLogout={onLogout} />}
     </>

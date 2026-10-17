@@ -55,11 +55,11 @@ export function Login({ onSignedIn, allowRegistration, lang, onLang }) {
         {error && <div className="err" role="alert">{error}</div>}
         <label className="field">
           <span>{t('שם משתמש')}</span>
-          <input id="login-username" className="inp ltr text-left" autoComplete="username" autoCapitalize="none" spellCheck="false" value={username} onChange={e => setUsername(e.target.value)} required data-autofocus autoFocus />
+          <input id="login-username" name="username" className="inp ltr text-left" autoComplete="username" autoCapitalize="none" spellCheck="false" value={username} onChange={e => setUsername(e.target.value)} required data-autofocus autoFocus />
         </label>
         <label className="field">
           <span>{t('סיסמה')}</span>
-          <input id="login-password" className="inp ltr text-left" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} required />
+          <input id="login-password" name="password" className="inp ltr text-left" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} required />
         </label>
         <button className="btn primary justify-center h-11" disabled={busy || !username || !password}>{busy ? t('רגע…') : mode === 'login' ? t('כניסה') : t('יצירת חשבון')}</button>
         {allowRegistration && (

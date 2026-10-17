@@ -19,8 +19,9 @@ export default function ImportDialog({ onClose, onImported }) {
     if (!file) return;
     setStep('reading'); setError('');
     try {
-      const text = await readFileText(file);
-      setPreview(await api.previewImport(text, file.name));
+      const isZip = /\.zip$/i.test(file.name);
+      const payload = isZip ? file : await readFileText(file);
+      setPreview(await api.previewImport(payload, file.name));
       setStep('preview');
     } catch (e) { setError(e.message); setStep('error'); }
   }
@@ -34,6 +35,7 @@ export default function ImportDialog({ onClose, onImported }) {
   }
 
   const c = preview?.counts;
+  const att = preview?.attachments;
   const catName = id => t(categories.find(x => x.id === id)?.name || id);
   const catCol = id => catColor(categories.find(x => x.id === id)?.color);
   const byCat = c ? Object.entries(c.byCategory || {}).sort((a, b) => b[1] - a[1]) : [];
@@ -60,9 +62,9 @@ export default function ImportDialog({ onClose, onImported }) {
             style={{ borderColor: over ? 'var(--accent)' : 'var(--border)', background: over ? 'var(--accent-soft)' : 'var(--surface-2)' }}>
             <Icon name="upload" className="!w-10 !h-10 text-fg3" />
             <div className="font-medium">{t('גוררים לכאן את קובץ הייצוא, או בוחרים אותו מהמחשב')}</div>
-            <div className="hint">{t('ייצוא רגיל של וואטסאפ (‎.txt‎, מאנדרואיד או מאייפון) או קובץ ‎.md‎ מומר. תמונות וקבצים לא נדרשים.')}</div>
+            <div className="hint">{t('ייצוא של וואטסאפ: קובץ ‎.zip‎ (עם מדיה), ‎.txt‎ (אנדרואיד/אייפון) או ‎.md‎ מומר.')}</div>
             <button className="btn primary" onClick={() => input.current?.click()} data-autofocus><Icon name="upload" size="sm" />{t('בחירת קובץ')}</button>
-            <input ref={input} id="import-file" type="file" accept=".txt,.md,text/plain,text/markdown" hidden onChange={e => handle(e.target.files?.[0])} />
+            <input ref={input} id="import-file" type="file" accept=".txt,.md,.zip,text/plain,text/markdown,application/zip" hidden onChange={e => handle(e.target.files?.[0])} />
           </div>
           <p className="hint">{t('שום דבר לא נשמר לפני שמאשרים. הודעות שכבר קיימות אצלך מזוהות ומדולגות, והסידור שלך לא משתנה.')}</p>
         </>)}
@@ -91,6 +93,9 @@ export default function ImportDialog({ onClose, onImported }) {
             <div className="cnt-tile"><div className="v">{num(c.previouslyDeleted)}</div><div className="k">{t('נמחקו בעבר (ידולגו)')}</div></div>
             <div className="cnt-tile"><div className="v">{num(c.bareMedia)}</div><div className="k">{t('מדיה בלי טקסט (תדולג)')}</div></div>
             <div className="cnt-tile"><div className="v">{num(c.messages)}</div><div className="k">{t('הודעות בקובץ')}</div></div>
+            {att && (
+              <div className="cnt-tile"><div className="v">{num(att.matched)}<span className="text-fg3">/{num(att.total)}</span></div><div className="k">{t('קבצים מצורפים יקושרו')}</div></div>
+            )}
           </div>
           {byCat.length > 0 && (
             <div className="box">
@@ -104,7 +109,7 @@ export default function ImportDialog({ onClose, onImported }) {
                   </div>
                 ))}
               </div>
-              <p className="hint">{t('כרטיסים שמוינו אוטומטית יקבלו תג „אוטומטי” עד שתבדקו אותם.')}</p>
+              <p className="hint">{t('כרטיסים שמוינו אוטומטית יקבלו תג „אוטומטי" עד שתבדקו אותם.')}</p>
             </div>
           )}
         </>)}

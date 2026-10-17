@@ -7,6 +7,7 @@ import { PasswordForm } from './Login.jsx';
 import { Core, CAT_COLORS, catColor, fmtDate, num, readFileText } from '../lib/util.js';
 import { LANGS, getLang } from '../i18n/index.js';
 import { t } from '../i18n/index.js';
+import { canInstall, installApp, onInstallChange } from '../lib/pwa.js';
 
 const MATCH = { contains: 'הטקסט מכיל', domain: 'קישור מהדומיין', starts: 'הטקסט מתחיל ב־', regex: 'ביטוי רגולרי' };
 const COLOR_HE = { slate: 'אפור', teal: 'טורקיז', green: 'ירוק', amber: 'ענבר', rose: 'ורד', indigo: 'אינדיגו', sky: 'תכלת', violet: 'סגול', brown: 'חום', orange: 'כתום', pink: 'ורוד', lime: 'ליים', cyan: 'ציאן', red: 'אדום' };
@@ -235,7 +236,9 @@ function AccountTab({ onLogout }) {
   const { user, settings, actions } = useStore();
   const toast = useToast();
   const [changing, setChanging] = useState(false);
+  const [installable, setInstallable] = useState(canInstall);
   const theme = settings.prefs?.theme || 'system';
+  useEffect(() => onInstallChange(setInstallable), []);
   return (
     <div className="dlg-body">
       <div className="box">
@@ -271,6 +274,13 @@ function AccountTab({ onLogout }) {
           ))}
         </div>
       </div>
+      {installable && (
+        <div className="box">
+          <h3>{t('התקנה כאפליקציה')}</h3>
+          <p className="hint">{t('אפשר להוסיף את פוקיפ למסך הבית ולהשתמש בו כמו אפליקציה רגילה.')}</p>
+          <div><button className="btn primary" onClick={async () => { const ok = await installApp(); if (ok) { setInstallable(false); toast(t('האפליקציה הותקנה!')); } }}><Icon name="download" size="sm" />{t('התקנה על המכשיר')}</button></div>
+        </div>
+      )}
     </div>
   );
 }

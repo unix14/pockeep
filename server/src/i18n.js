@@ -58,7 +58,9 @@ const EXACT = {
   'השדות לא תקינים': 'Invalid fields',
   'הכרטיס הזה נמחק לצמיתות': 'This card was permanently deleted',
   'הכרטיס נעול. יש לבטל את הנעילה קודם.': 'This card is locked. Unlock it first.',
-  'הקובץ לא זוהה. יש להעלות ייצוא צ׳אט של וואטסאפ (‎.txt‎) או קובץ ‎.md‎ מומר.': 'Unrecognized file. Upload a WhatsApp chat export (.txt) or a converted .md file.'
+  'הקובץ לא זוהה. יש להעלות ייצוא צ׳אט של וואטסאפ (‎.txt‎) או קובץ ‎.md‎ מומר.': 'Unrecognized file. Upload a WhatsApp chat export (.txt) or a converted .md file.',
+  'לא נמצא קובץ טקסט (‎.txt‎ או ‎.md‎) בתוך ה-ZIP': 'No text file (.txt or .md) found inside the ZIP',
+  'הקובץ לא נמצא': 'File not found'
 };
 
 const PATTERNS = [

@@ -90,6 +90,16 @@ export default function Editor({ item, onClose }) {
         <textarea id="ed-text" className="ta ed-text" value={d.text} onChange={e => set({ text: e.target.value })} dir="auto" aria-label={t('טקסט הכרטיס')} data-autofocus
           rows={Math.min(16, Math.max(5, d.text.split('\n').length + 1))} />
         {item.docName && <div className="c-doc"><Icon name="clip" size="xs" /><span dir="auto">{item.docName}</span></div>}
+        {item.attachments?.length > 0 && (
+          <div className="c-attachments" style={{ marginTop: 8 }}>
+            {item.attachments.map(a => (
+              <a key={a.name} className="c-att" href={`/api/attachments/${encodeURIComponent(item.id)}/${encodeURIComponent(a.name)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title={a.name}>
+                <Icon name={a.type?.startsWith('image/') ? 'eye' : a.type === 'application/pdf' ? 'note' : 'clip'} size="xs" />
+                <span className="att-name" dir="auto">{a.name}</span>
+              </a>
+            ))}
+          </div>
+        )}
         {f.link && <LinkChip link={f.link} />}
 
         <div className="grid3">

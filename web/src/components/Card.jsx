@@ -194,8 +194,18 @@ function Card({ it, category, showCategory, selected, selecting, isNew, today: t
       </div>
       {it.title && <div className="c-title" dir="auto">{it.title}</div>}
       <Body it={it} td={td} />
+      {it.attachments?.length > 0 && (
+        <div className="c-attachments">
+          {it.attachments.map(a => (
+            <a key={a.name} className="c-att" href={`/api/attachments/${encodeURIComponent(it.id)}/${encodeURIComponent(a.name)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title={a.name}>
+              <Icon name={a.type?.startsWith('image/') ? 'eye' : a.type === 'application/pdf' ? 'note' : 'clip'} size="xs" />
+              <span className="att-name" dir="auto">{a.name}</span>
+            </a>
+          ))}
+        </div>
+      )}
       {it.labels?.length > 0 && <div className="c-labels">{it.labels.map(l => <span key={l} className="lab" dir="auto">#{l}</span>)}</div>}
-      {(isNew || it.flags?.auto || it.media || it.forwarded || it.flags?.editedWA || it.note) && (
+      {(isNew || it.flags?.auto || it.media || it.forwarded || it.flags?.editedWA || it.note || it.attachments?.length) && (
         <div className="c-flags">
           {isNew && <span className="flag new">{t('חדש')}</span>}
           {it.flags?.auto && (
@@ -203,7 +213,8 @@ function Card({ it, category, showCategory, selected, selecting, isNew, today: t
               <Icon name="sparkle" size="xs" />{t('אוטומטי')}
             </button>
           )}
-          {it.media && <span className="flag" title={t('ההודעה המקורית כללה קובץ מצורף')}><Icon name="clip" size="xs" />{it.docName ? t('מסמך') : t('מצורף')}</span>}
+          {it.media && !it.attachments?.length && <span className="flag" title={t('ההודעה המקורית כללה קובץ מצורף')}><Icon name="clip" size="xs" />{it.docName ? t('מסמך') : t('מצורף')}</span>}
+          {it.attachments?.length > 0 && <span className="flag" title={t('{n} קבצים מצורפים', { n: it.attachments.length })}><Icon name="clip" size="xs" />{it.attachments.length} {t('קבצים')}</span>}
           {it.forwarded && <span className="flag"><Icon name="forward" size="xs" className="flip" />{t('הועבר')}</span>}
           {it.flags?.editedWA && <span className="flag warn">{t('נערך בוואטסאפ')}</span>}
           {it.note && <span className="flag" title={it.note}><Icon name="note" size="xs" />{t('הערה')}</span>}
