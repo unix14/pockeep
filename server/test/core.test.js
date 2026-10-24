@@ -68,3 +68,22 @@ test('fingerprints of existing card shapes are unchanged', () => {
   assert.equal(only('IMG-20260105-WA0002.jpg (file attached)\nLook at this receipt').id, 'i9s5hzhl1em');
   assert.equal(only('invoice-2026.pdf (file attached)').id, 'i1owjwedckn5');
 });
+
+/* WhatsApp writes some notices into the chat under the chat's own name, as if
+   it were a sender. They hold none of the user's content, so they must not
+   become cards (a group export had 33 of them on one day). */
+const notice = time => `[17/10/2026, ${time}] הקבוצות שלי: ‎Use WhatsApp on your primary phone to see older replies.\n`;
+
+test('drops the "use WhatsApp on your primary phone" notice', () => {
+  const r = Core.parseExport(notice('2:27:29') + notice('2:27:29'));
+  assert.equal(r.items.length, 0);
+  assert.equal(r.stats.system, 2);
+});
+
+test('the notice does not shift the fingerprint of a real message that day', () => {
+  const real = '[17/10/2026, 2:30:00] Eyal: buy milk\n';
+  const alone = Core.parseExport(real).items;
+  const mixed = Core.parseExport(notice('2:27:10') + real + notice('2:31:00')).items;
+  assert.equal(mixed.length, 1);
+  assert.equal(mixed[0].id, alone[0].id);
+});

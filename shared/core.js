@@ -168,6 +168,10 @@ const Core = (() => {
     return { msgs, exportDate: null, title: null };
   }
 
+  // Notices WhatsApp writes under the chat's own name, as if it were a sender.
+  // They carry nothing of the user's, so they are counted as system messages.
+  const WA_NOTICE = /^use whatsapp on your (?:primary )?phone to see older (?:replies|messages)\.?$/i;
+
   // Parse any supported export -> {format, items:[normalized msg], stats}
   function parseExport(text) {
     const format = detectFormat(text);
@@ -178,7 +182,7 @@ const Core = (() => {
     const occ = new Map(); const daySeq = new Map();
     for (const m of parsed.msgs) {
       stats.messages++;
-      if (m.system) { stats.system++; continue; }
+      if (m.system || WA_NOTICE.test(clean(m.raw).trim())) { stats.system++; continue; }
       const s = stripMarkers(m.raw);
       // A media message with a real file behind it (".zip" export) becomes a card
       // even without a caption, so the file has something to attach to. Bare
