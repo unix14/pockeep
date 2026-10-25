@@ -31,12 +31,11 @@ Ideas and planned work, roughly in priority order. Contributions welcome.
 
 ## Deployment and updates
 
-- [x] **One-command update.** [`scripts/update.sh`](scripts/update.sh) pulls `main` and rebuilds, skipping the rebuild when there is nothing new. Runs inside the server or through `pct exec` on a Proxmox host.
-- [ ] **Auto-deploy on push.** The update script still has to be started by hand. Ideas for running it automatically:
+- [ ] **Auto-deploy on push.** Updating (`git pull` and `docker compose up -d --build`) still has to be started by hand. Ideas for running it automatically:
   - [ ] **GitHub webhook → automation** — the repo sends a push webhook to a workflow engine (e.g. n8n, Rundeck), which SSHes into the server and runs the update.
   - [ ] **GitHub Actions + Tailscale** — add `tailscale/github-action` to the CI pipeline so it can SSH to a private server and deploy automatically.
-  - [ ] **Scheduled polling** — a systemd timer or cron job on the server that runs `scripts/update.sh` periodically. Simplest, no external dependencies.
-  - [ ] **Update button for admins** — needs the app to trigger a rebuild on its host. Mounting the Docker socket into the container would hand the app root on the host, so prefer a host-side watcher: the app writes a request file into the data volume and a systemd path unit runs the update script.
+  - [ ] **Scheduled polling** — a systemd timer or cron job on the server that pulls `main` and rebuilds periodically. Simplest, no external dependencies.
+  - [ ] **Update button for admins** — needs the app to trigger a rebuild on its host. Mounting the Docker socket into the container would hand the app root on the host, so prefer a host-side watcher: the app writes a request file into the data volume and a systemd path unit runs the update.
 - [ ] Prebuilt multi-arch images on GHCR (amd64, arm64) — would simplify updates to a `docker compose pull` instead of building from source.
 
 ## Platform
