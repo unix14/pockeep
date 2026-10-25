@@ -464,6 +464,7 @@ body.has-bulk .toast { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 .login { width: min(400px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; display: grid; gap: 16px; box-shadow: var(--shadow); }
 .login h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
 .login p { margin: 0; color: var(--fg-2); }
+.warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
 .err { background: var(--bad-soft); color: var(--bad); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
 .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--surface-3); border-top-color: var(--accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

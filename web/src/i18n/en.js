@@ -317,6 +317,7 @@ export default {
   'אולי עריכה (יסומנו)': 'Possible edits (flagged)',
   'נמחקו בעבר (ידולגו)': 'Previously deleted (skipped)',
   'מדיה בלי טקסט (תדולג)': 'Media without text (skipped)',
+  'וואטסאפ הסתיר {n} תגובות ישנות בייצוא הזה, אז ייתכן שחסרות בו הודעות. כדי לקבל אותן, ייצאו את הצ׳אט מהטלפון הראשי.': 'WhatsApp hid {n} older replies in this export, so some messages may be missing. To get them, export the chat from your primary phone.',
   'הודעות בקובץ': 'Messages in file',
   'לאן ימוינו הכרטיסים החדשים': 'Where the new cards will go',
   'כרטיסים שמוינו אוטומטית יקבלו תג „אוטומטי” עד שתבדקו אותם.': 'Auto-sorted cards get an “Auto” tag until you review them.',

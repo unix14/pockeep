@@ -74,10 +74,11 @@ test('fingerprints of existing card shapes are unchanged', () => {
    become cards (a group export had 33 of them on one day). */
 const notice = time => `[17/10/2026, ${time}] הקבוצות שלי: ‎Use WhatsApp on your primary phone to see older replies.\n`;
 
-test('drops the "use WhatsApp on your primary phone" notice', () => {
+test('drops the "use WhatsApp on your primary phone" notice and counts it', () => {
   const r = Core.parseExport(notice('2:27:29') + notice('2:27:29'));
   assert.equal(r.items.length, 0);
-  assert.equal(r.stats.system, 2);
+  // counted on its own so the import preview can warn that the export may be incomplete
+  assert.equal(r.stats.hiddenReplies, 2);
 });
 
 test('the notice does not shift the fingerprint of a real message that day', () => {

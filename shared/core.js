@@ -169,7 +169,8 @@ const Core = (() => {
   }
 
   // Notices WhatsApp writes under the chat's own name, as if it were a sender.
-  // They carry nothing of the user's, so they are counted as system messages.
+  // They carry nothing of the user's, but each one marks replies this export
+  // left out, so they are counted on their own for the import preview.
   const WA_NOTICE = /^use whatsapp on your (?:primary )?phone to see older (?:replies|messages)\.?$/i;
 
   // Parse any supported export -> {format, items:[normalized msg], stats}
@@ -177,12 +178,13 @@ const Core = (() => {
     const format = detectFormat(text);
     if (!format) return { format: null, items: [], stats: { error: 'הקובץ לא זוהה. יש להעלות ייצוא צ׳אט של וואטסאפ (‎.txt‎) או קובץ ‎.md‎ מומר.' } };
     const parsed = format === 'md' ? parseMd(text) : parseNative(text, format);
-    const stats = { messages: 0, system: 0, bareMedia: 0, kept: 0 };
+    const stats = { messages: 0, system: 0, hiddenReplies: 0, bareMedia: 0, kept: 0 };
     const items = [];
     const occ = new Map(); const daySeq = new Map();
     for (const m of parsed.msgs) {
       stats.messages++;
-      if (m.system || WA_NOTICE.test(clean(m.raw).trim())) { stats.system++; continue; }
+      if (m.system) { stats.system++; continue; }
+      if (WA_NOTICE.test(clean(m.raw).trim())) { stats.hiddenReplies++; continue; }
       const s = stripMarkers(m.raw);
       // A media message with a real file behind it (".zip" export) becomes a card
       // even without a caption, so the file has something to attach to. Bare

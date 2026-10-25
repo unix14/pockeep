@@ -441,6 +441,7 @@ export function summarize(parsed, plan) {
   return {
     messages: parsed.stats.messages,
     system: parsed.stats.system,
+    hiddenReplies: parsed.stats.hiddenReplies,
     bareMedia: parsed.stats.bareMedia,
     kept: parsed.stats.kept,
     newItems: plan.newItems.length,

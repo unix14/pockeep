@@ -84,6 +84,11 @@ export default function ImportDialog({ onClose, onImported }) {
             {preview.firstDate && <> {t('· הודעות מ־')}<bdi>{fmtDate(preview.firstDate)}</bdi> {t('עד')} <bdi>{fmtDate(preview.lastDate)}</bdi></>}
             {preview.exportDate && <> {t('· יוצא ב־')}<bdi dir="ltr">{preview.exportDate}</bdi></>}
           </div>
+          {c.hiddenReplies > 0 && (
+            <div className="warnbox" role="status">
+              {t('וואטסאפ הסתיר {n} תגובות ישנות בייצוא הזה, אז ייתכן שחסרות בו הודעות. כדי לקבל אותן, ייצאו את הצ׳אט מהטלפון הראשי.', { n: num(c.hiddenReplies) })}
+            </div>
+          )}
           <div className="counts">
             <div className="cnt-tile hi"><div className="v">{num(c.newItems)}</div><div className="k">{t('כרטיסים חדשים')}</div></div>
             <div className="cnt-tile"><div className="v">{num(c.present)}</div><div className="k">{t('כבר קיימים אצלך')}</div></div>

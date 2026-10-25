@@ -47,6 +47,15 @@ test('rejects unauthenticated and cross-site requests', async () => {
   assert.equal(bad.statusCode, 401);
 });
 
+test('import preview reports the replies WhatsApp left out of the export', async () => {
+  const a = await login('alice', 'alice-password');
+  const text = '[17/10/2026, 2:27:29] My notes: ‎Use WhatsApp on your primary phone to see older replies.\n[17/10/2026, 2:30:00] Alice: buy milk\n';
+  const p = await call(a, 'POST', '/api/imports/preview', text, { 'content-type': 'text/plain' });
+  assert.equal(p.statusCode, 200, p.body);
+  assert.equal(p.json().counts.hiddenReplies, 1);
+  assert.equal(p.json().counts.newItems, 1);
+});
+
 test('import preview writes nothing; commit creates cards; re-import is idempotent', async () => {
   const a = await login('alice', 'alice-password');
   const p = await app.inject({ method: 'POST', url: '/api/imports/preview', payload: EXPORT, headers: { ...H, cookie: a.cookie, 'content-type': 'text/plain' } });
