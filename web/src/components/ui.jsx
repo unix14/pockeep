@@ -4,15 +4,37 @@ import { isRtl } from '../i18n/index.js';
 import { t } from '../i18n/index.js';
 
 /* ---------- Modal ---------- */
+// Open modals, innermost last: Escape closes only the top one.
+const modalStack = [];
+
 export function Modal({ title, onClose, children, footer, size = '', labelledBy, initialFocus = true }) {
   const ref = useRef(null);
+  // Callers usually pass a new onClose on every render. Reading it through a ref
+  // keeps the mount effect below from re-running (and moving focus) on each keystroke.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); onClose?.(); } };
+    const token = {};
+    modalStack.push(token);
+    const onKey = e => {
+      if (e.key !== 'Escape' || modalStack[modalStack.length - 1] !== token) return;
+      e.stopPropagation();
+      onCloseRef.current?.();
+    };
     window.addEventListener('keydown', onKey, true);
     const prev = document.activeElement;
-    if (initialFocus) setTimeout(() => ref.current?.querySelector('[data-autofocus], input, textarea, select, button')?.focus(), 0);
-    return () => { window.removeEventListener('keydown', onKey, true); prev?.focus?.(); };
-  }, [onClose, initialFocus]);
+    let focusTimer;
+    if (initialFocus) {
+      focusTimer = setTimeout(() => ref.current?.querySelector('[data-autofocus], input, textarea, select, button')?.focus(), 0);
+    }
+    return () => {
+      clearTimeout(focusTimer);
+      const i = modalStack.indexOf(token);
+      if (i !== -1) modalStack.splice(i, 1);
+      window.removeEventListener('keydown', onKey, true);
+      prev?.focus?.();
+    };
+  }, [initialFocus]);
   return (
     <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose?.(); }}>
       <div className={`dlg ${size}`} role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined} aria-labelledby={labelledBy} ref={ref}>
