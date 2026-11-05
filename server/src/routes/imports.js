@@ -32,16 +32,31 @@ function isSkippable(entryName) {
   return SKIP_RE.test(entryName) || entryName.split('/').some(p => SKIP_RE.test(p));
 }
 
-function extractZip(buf) {
+// Uncompressed size allowed for everything in an uploaded .zip, as a multiple
+// of the upload limit. Media is already compressed, and chat text shrinks
+// roughly 5-8x, so honest exports stay far below this.
+const ZIP_EXPANSION = 10;
+
+/* adm-zip allocates each entry's declared size up front, and inflates without
+   any output limit when the declared size is 0. A small crafted .zip could
+   therefore make the server allocate gigabytes. Declared sizes are summed and
+   capped before anything is decompressed, and entries that claim to be empty
+   are never extracted. */
+function extractZip(buf, maxBytes) {
   const zip = new AdmZip(buf);
   const entries = zip.getEntries();
   let textEntry = null;
   const files = new Map();
+  let total = 0;
 
   for (const entry of entries) {
     if (entry.isDirectory) continue;
     const name = entry.entryName.split('/').pop();
     if (!name || isSkippable(entry.entryName)) continue;
+    const size = entry.header.size;
+    if (!size) continue;
+    total += size;
+    if (total > maxBytes) throw new HttpError(413, 'too_large', 'הקובץ גדול מדי עבור השרת. אפשר להגדיל את MAX_IMPORT_MB או MAX_BACKUP_MB.');
 
     if (/\.(txt|md)$/i.test(name) && !textEntry) {
       textEntry = entry;
@@ -98,7 +113,7 @@ export default async function importRoutes(app) {
     let text, zipBuffer = null, attachmentFiles = null, attachmentMatch = null;
 
     if (Buffer.isBuffer(req.body)) {
-      const extracted = extractZip(req.body);
+      const extracted = extractZip(req.body, bodyLimit * ZIP_EXPANSION);
       text = extracted.text;
       zipBuffer = req.body;
       attachmentFiles = extracted.files;
