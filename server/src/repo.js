@@ -277,6 +277,7 @@ export function forUser(db, userId) {
        nothing, which is what the confirmation dialog asks for first. */
     applyRules({ dryRun = false } = {}) {
       const rules = repo.rules();
+      const catIds = repo.categoryIds();
       const counts = { eligible: 0, changed: 0, skipped: { manual: 0, locked: 0 } };
       const ops = [];
 
@@ -288,12 +289,14 @@ export function forUser(db, userId) {
         counts.eligible++;
 
         const c = Core.classify(it, rules);
+        // the built-in classifier can name a category this user has deleted
+        const category = catIds.has(c.category) ? c.category : 'inbox';
         const labels = [...new Set([...it.labels, ...(c.labels || [])])];
         const sameLabels = labels.length === it.labels.length && labels.every(l => it.labels.includes(l));
-        if (c.category === it.category && sameLabels) continue;
+        if (category === it.category && sameLabels) continue;
 
         counts.changed++;
-        ops.push({ id: it.id, patch: { category: c.category, labels } });
+        ops.push({ id: it.id, patch: { category, labels } });
       }
 
       // touch: false keeps a bulk re-sort from rewriting every card's updatedAt
@@ -361,6 +364,21 @@ export function forUser(db, userId) {
     commitImport(parsed, meta, attachmentMap) {
       return db.transaction(() => {
         const plan = Core.reconcile(parsed.items, repo.reconcileMap(), repo.rules());
+        // The built-in classifier only knows the default category ids. A card it
+        // files under one this user has deleted goes to "Unsorted" instead of
+        // into a category that no longer exists.
+        const catIds = repo.categoryIds();
+        let remapped = false;
+        for (const rec of plan.newItems) {
+          if (catIds.has(rec.category)) continue;
+          rec.category = 'inbox';
+          rec.flags = { ...rec.flags, auto: false };
+          remapped = true;
+        }
+        if (remapped) {
+          plan.byCategory = {};
+          for (const rec of plan.newItems) plan.byCategory[rec.category] = (plan.byCategory[rec.category] || 0) + 1;
+        }
         const importId = 'imp_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         const at = now();
         for (const rec of plan.newItems) {
