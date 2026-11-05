@@ -135,10 +135,27 @@ export const randomPassword = () => randomBytes(12).toString('base64url');
 // Small in-memory limiter for login attempts (per IP and per username).
 export function makeLoginLimiter({ max = 10, windowMs = 15 * 60 * 1000 } = {}) {
   const hits = new Map();
-  const key = k => { const now = Date.now(); const e = hits.get(k); if (!e || now - e.start > windowMs) { const n = { start: now, count: 0 }; hits.set(k, n); return n; } return e; };
+  let lastSweep = Date.now();
+  // Expired windows are dropped once per window. Without this every username or
+  // address ever tried stayed in the map for the life of the process.
+  const sweep = now => {
+    if (now - lastSweep < windowMs) return;
+    lastSweep = now;
+    for (const [k, e] of hits) if (now - e.start > windowMs) hits.delete(k);
+  };
+  const live = (k, now) => { const e = hits.get(k); return e && now - e.start <= windowMs ? e : null; };
   return {
-    blocked: keys => keys.some(k => key(k).count >= max),
-    fail: keys => keys.forEach(k => key(k).count++),
-    reset: keys => keys.forEach(k => hits.delete(k))
+    // checking does not create entries; only failures do
+    blocked: keys => { const now = Date.now(); sweep(now); return keys.some(k => (live(k, now)?.count || 0) >= max); },
+    fail: keys => {
+      const now = Date.now();
+      for (const k of keys) {
+        let e = live(k, now);
+        if (!e) { e = { start: now, count: 0 }; hits.set(k, e); }
+        e.count++;
+      }
+    },
+    reset: keys => keys.forEach(k => hits.delete(k)),
+    size: () => hits.size
   };
 }
