@@ -82,15 +82,21 @@ export function StoreProvider({ user, onPasswordChangeRequired, onLang, children
         return true;
       });
       if (!valid.length) { if (lockedSkipped) toast(lockedSkipped === 1 && ops.length === 1 ? t('הכרטיס נעול. יש לבטל את הנעילה קודם.') : lockedMsg(lockedSkipped)); return null; }
-      const prev = valid.map(o => items[o.id]);
       const inverse = valid.map(o => ({ id: o.id, patch: inversePatch(items[o.id], o.patch) }));
+      // Undo only the fields this patch changed, on the cards as they are now.
+      // Restoring the whole pre-request snapshot would also wipe edits made
+      // while the request was in flight, and bring back cards removed meanwhile.
+      const revert = ids => {
+        const cur = ref.current.items;
+        dispatch({ type: 'upsert', items: inverse.filter(o => cur[o.id] && (!ids || ids.has(o.id))).map(o => applyLocal(cur[o.id], o.patch)) });
+      };
       dispatch({ type: 'upsert', items: valid.map(o => applyLocal(items[o.id], o.patch)) });
       try {
         const res = await track(() => api.batch(valid));
         dispatch({ type: 'upsert', items: res.items });
         const skippedIds = new Set(res.skipped.map(s => s.id));
         if (skippedIds.size) {
-          dispatch({ type: 'upsert', items: prev.filter(p => skippedIds.has(p.id)) });
+          revert(skippedIds);
           lockedSkipped += res.skipped.filter(s => s.reason === 'locked').length;
         }
         const labels = new Set(ref.current.settings.labels);
@@ -105,7 +111,7 @@ export function StoreProvider({ user, onPasswordChangeRequired, onLang, children
         }
         return res;
       } catch (e) {
-        dispatch({ type: 'upsert', items: prev });
+        revert();
         fail(e);
         return null;
       }
