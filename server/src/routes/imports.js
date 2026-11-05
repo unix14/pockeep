@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, renameSync, rmSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import AdmZip from 'adm-zip';
 import Core from '../../../shared/core.js';
@@ -176,6 +176,25 @@ export default async function importRoutes(app) {
 
     const repo = forUser(db, req.user.id);
     const result = repo.commitImport(p.parsed, { fileName: p.fileName, storedFile }, attachmentMap);
+
+    // Files were written under each message's own id. A message recognised as a
+    // WhatsApp edit of an existing card is folded into that card (and its id kept
+    // as an alias), so its files must move to the card's folder to be reachable.
+    if (attachmentMap?.size) {
+      const owner = new Map();
+      for (const it of repo.reconcileMap().values()) for (const a of it.aliases) owner.set(a, it.id);
+      for (const [itemId, records] of attachmentMap) {
+        const target = owner.get(itemId);
+        if (!target || target === itemId) continue;
+        const from = join(config.attachmentsDir, String(req.user.id), itemId);
+        const to = join(config.attachmentsDir, String(req.user.id), target);
+        try {
+          mkdirSync(to, { recursive: true });
+          for (const r of records) renameSync(join(from, r.name), join(to, r.name));
+          rmSync(from, { recursive: true, force: true });
+        } catch (e) { req.log.warn(e, `Could not move attachments of ${itemId} to ${target}`); }
+      }
+    }
     return { ...result, items: repo.items(), imports: repo.imports(50), settings: repo.settings() };
   });
 
