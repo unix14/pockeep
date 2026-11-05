@@ -1,5 +1,5 @@
 import { createReadStream, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { resolve, sep } from 'node:path';
 import { forUser } from '../repo.js';
 import { badRequest, notFound } from '../errors.js';
 
@@ -73,9 +73,16 @@ export default async function dataRoutes(app) {
   // Serve attachment files
   app.get('/attachments/:itemId/:fileName', async (req, reply) => {
     const { itemId, fileName } = req.params;
-    const safeName = decodeURIComponent(fileName).replace(/[^\p{L}\p{N} ._()-]/gu, '_').slice(0, 200);
-    const filePath = join(app.config.attachmentsDir, String(req.user.id), itemId, safeName);
-    if (!filePath.startsWith(app.config.attachmentsDir) || !existsSync(filePath)) throw notFound('הקובץ לא נמצא');
+    let decoded;
+    try { decoded = decodeURIComponent(fileName); } catch { throw notFound('הקובץ לא נמצא'); }
+    const safeName = decoded.replace(/[^\p{L}\p{N} ._()-]/gu, '_').slice(0, 200);
+    // Only files recorded on one of this user's own (non-purged) cards are served.
+    // itemId comes from the URL, so it must never be used to walk the filesystem.
+    const item = repoOf(req).item(itemId);
+    if (!item?.attachments?.some(a => a.name === safeName)) throw notFound('הקובץ לא נמצא');
+    const userDir = resolve(app.config.attachmentsDir, String(req.user.id));
+    const filePath = resolve(userDir, itemId, safeName);
+    if (!filePath.startsWith(userDir + sep) || !existsSync(filePath)) throw notFound('הקובץ לא נמצא');
 
     const ext = safeName.split('.').pop()?.toLowerCase() || '';
     const contentType = {
