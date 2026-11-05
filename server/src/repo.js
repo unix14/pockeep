@@ -145,7 +145,7 @@ export function forUser(db, userId) {
       const id = 'i' + randomBytes(8).toString('base64url');
       const at = now();
       const d = new Date();
-      const date = d.toISOString().slice(0, 10);
+      const date = Core.ymd(d); // local calendar day, same clock as `time` below
       const time = d.toTimeString().slice(0, 5);
       const catIds = repo.categoryIds();
       const it = {
